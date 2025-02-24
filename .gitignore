@@ -1,0 +1,4 @@
+./server/zig-out/*
+./server/.zig-cache/*
+./server/zig-out
+./server/.zig-cache
