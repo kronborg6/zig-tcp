@@ -13,11 +13,10 @@ pub fn main() !void {
     try posix.setsockopt(listener, posix.SOL.SOCKET, posix.SO.REUSEADDR, &std.mem.toBytes(@as(c_int, 1)));
     try posix.bind(listener, &address.any, address.getOsSockLen());
     try posix.listen(listener, 128);
-
+    var buf: [128]u8 = undefined;
     while (true) {
         var client_address: net.Address = undefined;
         var client_address_len: posix.socklen_t = @sizeOf(net.Address);
-
         const socket = posix.accept(listener, &client_address.any, &client_address_len, 0) catch |err| {
             // Rare that this happens, but in later parts we'll
             // see examples where it does.
@@ -28,7 +27,22 @@ pub fn main() !void {
 
         std.debug.print("{} connected\n", .{client_address});
 
-        write(socket, "Hello (and goodbye)") catch |err| {
+        const timeout = posix.timeval{ .sec = 2, .usec = 500_000 };
+        // our existing read timeout
+        try posix.setsockopt(socket, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
+        // our write timeout
+        try posix.setsockopt(socket, posix.SOL.SOCKET, posix.SO.SNDTIMEO, &std.mem.toBytes(timeout));
+
+        const read = posix.read(socket, &buf) catch |err| {
+            std.debug.print("error reading: {}\n", .{err});
+            continue;
+        };
+
+        if (read == 0) {
+            continue;
+        }
+
+        write(socket, buf[0..read]) catch |err| {
             // This can easily happen, say if the client disconnects.
             std.debug.print("error writing: {}\n", .{err});
         };
