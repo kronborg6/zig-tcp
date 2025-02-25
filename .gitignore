@@ -3,3 +3,5 @@
 ./server/zig-out
 ./server/.zig-cache
 
+./clinet/zig-out
+./clinet/.zig-cache
