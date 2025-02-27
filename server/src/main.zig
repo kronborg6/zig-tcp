@@ -60,7 +60,7 @@ const Client = struct {
 
         while (true) {
             const msg = try reader.readMessage();
-            std.debug.print("[{}] sent: {s}\n", .{ self.address, msg });
+            std.debug.print("[{}]V{any} sent: {s}\n", .{ self.address, reader.ver, msg });
         }
     }
 };
@@ -69,6 +69,7 @@ const Reader = struct {
     buf: []u8,
     pos: usize = 0,
     start: usize = 0,
+    ver: usize = 0,
     socket: posix.socket_t,
 
     fn readMessage(self: *Reader) ![]u8 {
@@ -94,15 +95,19 @@ const Reader = struct {
 
         std.debug.assert(pos >= start);
         const unprocessed = buf[start..pos];
-        if (unprocessed.len < 4) {
-            self.ensureSpace(4 - unprocessed.len) catch unreachable;
+        if (unprocessed.len < 6) {
+            self.ensureSpace(6 - unprocessed.len) catch unreachable;
             return null;
         }
 
         const message_len = std.mem.readInt(u32, unprocessed[0..4], .little);
+        const version = std.mem.readInt(u16, unprocessed[4..6], .little);
+        self.ver = version;
+
+        // std.debug.print("{any}\n", .{version});
 
         // the length of our message + the length of our prefix
-        const total_len = message_len + 4;
+        const total_len = message_len + 6;
 
         if (unprocessed.len < total_len) {
             try self.ensureSpace(total_len);
