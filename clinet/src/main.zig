@@ -11,17 +11,22 @@ pub fn main() !void {
     defer posix.close(socket);
 
     try posix.connect(socket, &address.any, address.getOsSockLen());
-    try writeMessage(socket, "Hello World");
-    try writeMessage(socket, "It's OverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOver 9000!!");
-    try writeMessage(socket, "It's OverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOver 9000!!");
+    try writeMessage(socket, 1, "Hello World");
+    try writeMessage(socket, 1, "Hello World");
+    try writeMessage(socket, 10, "Hello World");
+    // try writeMessage(socket, "It's OverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOver 9000!!");
+    // try writeMessage(socket, "It's OverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOver 9000!!");
 }
 
-fn writeMessage(socket: posix.socket_t, msg: []const u8) !void {
+fn writeMessage(socket: posix.socket_t, verion: u16, msg: []const u8) !void {
     var buf: [4]u8 = undefined;
+    var ver: [2]u8 = undefined;
     std.mem.writeInt(u32, &buf, @intCast(msg.len), .little);
+    std.mem.writeInt(u16, &ver, @intCast(verion), .little);
 
-    var vec = [2]posix.iovec_const{
+    var vec = [3]posix.iovec_const{
         .{ .len = 4, .base = &buf },
+        .{ .len = 2, .base = &ver },
         .{ .len = msg.len, .base = msg.ptr },
     };
     try writeAllVectored(socket, &vec);
