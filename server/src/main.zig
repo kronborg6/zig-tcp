@@ -105,8 +105,10 @@ const Server = struct {
                             // because removeClient does a swap and puts the last
                             // client at position i
                             self.removeClient(i);
+                            std.debug.print("failed \n", .{});
                             break;
                         } orelse {
+                            std.debug.print("failed to read message\n", .{});
                             // no more messages, but this client is still connected
                             i += 1;
                             break;
@@ -131,8 +133,10 @@ const Server = struct {
             const client = Client.init(self.allocator, socket, address) catch |err| {
                 posix.close(socket);
                 log.err("failed to initialize client: {}", .{err});
+                std.debug.print("failed to initialize client: {}", .{err});
                 return;
             };
+            std.debug.print("connected: {any}\n", .{client.address});
 
             const connected = self.connected;
             self.clients[connected] = client;
@@ -228,27 +232,31 @@ const Reader = struct {
         const buf = self.buf;
         const pos = self.pos;
         const start = self.start;
-
+        var header: Header = undefined;
         std.debug.assert(pos >= start);
         const unprocessed = buf[start..pos];
-        if (unprocessed.len < 6) {
-            self.ensureSpace(6 - unprocessed.len) catch unreachable;
+        if (unprocessed.len < 8) {
+            self.ensureSpace(8 - unprocessed.len) catch unreachable;
             return null;
         }
 
-        const message_len = std.mem.readInt(u32, unprocessed[0..4], .little);
-        _ = std.mem.readInt(u16, unprocessed[4..6], .little);
+        header.length = std.mem.readInt(u32, unprocessed[0..4], .little);
+        header.version = std.mem.readInt(u16, unprocessed[4..6], .little);
+        header.msg_type = std.mem.readInt(u16, unprocessed[6..8], .little);
+        // _ = std.mem.readInt(u16, unprocessed[4..6], .little);
+        std.debug.print("len: {}\n", .{header.length});
 
         // the length of our message + the length of our prefix
-        const total_len = message_len + 6;
+        const total_len = header.length + 8;
 
         if (unprocessed.len < total_len) {
             try self.ensureSpace(total_len);
+            std.debug.print("g\n", .{});
             return null;
         }
 
         self.start += total_len;
-        return unprocessed[6..total_len];
+        return unprocessed[8..total_len];
     }
 
     fn ensureSpace(self: *Reader, space: usize) error{BufferTooSmall}!void {
@@ -268,4 +276,10 @@ const Reader = struct {
         self.start = 0;
         self.pos = unprocessed.len;
     }
+};
+
+const Header = extern struct {
+    length: u32, // 4 bytes
+    version: u16, // 2 bytes
+    msg_type: u16, // 4 bytes
 };
