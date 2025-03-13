@@ -1,11 +1,4 @@
-# ./server/zig-out/*
-# ./server/.zig-cache/*
-./server/zig-out
-./server/.zig-cache
-server/.zig-cache
-server/zig-out
-
-./clinet/zig-out
-./clinet/.zig-cache
-clinet/zig-out
-clinet/.zig-cache
+**/zig-out/
+**/.zig-cache/
+**/node_modules/
+**/dist/

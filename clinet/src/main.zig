@@ -17,16 +17,25 @@ pub fn main() !void {
     // try writeMessage(socket, "It's OverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOver 9000!!");
     // try writeMessage(socket, "It's OverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOverOver 9000!!");
 }
+// var buf: [4]u8 = undefined;
+// var ver: [2]u8 = undefined;
+// std.mem.writeInt(u32, &buf, @intCast(msg.len), .little);
+// std.mem.writeInt(u16, &ver, @intCast(verion), .little);
 
 fn writeMessage(socket: posix.socket_t, verion: u16, msg: []const u8) !void {
-    var buf: [4]u8 = undefined;
-    var ver: [2]u8 = undefined;
-    std.mem.writeInt(u32, &buf, @intCast(msg.len), .little);
-    std.mem.writeInt(u16, &ver, @intCast(verion), .little);
+    var header = Header{
+        .length = @intCast(msg.len),
+        .version = verion,
+        .type = 22,
+    };
+    // std.mem.writeInt(u16, &header, null, .little);
 
-    var vec = [3]posix.iovec_const{
-        .{ .len = 4, .base = &buf },
-        .{ .len = 2, .base = &ver },
+    // var vec = [2]posix.iovec_const{
+    //     .{ .len = 4, .base = &buf },
+    //     .{ .len = 2, .base = &ver },
+    // };
+    var vec = [2]posix.iovec_const{
+        .{ .len = 8, .base = std.mem.asBytes(&header) },
         .{ .len = msg.len, .base = msg.ptr },
     };
     try writeAllVectored(socket, &vec);
@@ -45,3 +54,9 @@ fn writeAllVectored(socket: posix.socket_t, vec: []posix.iovec_const) !void {
         vec[i].len -= n;
     }
 }
+
+const Header = extern struct {
+    length: u32,
+    version: u16,
+    type: u16,
+};
